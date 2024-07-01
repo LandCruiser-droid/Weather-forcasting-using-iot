@@ -1,0 +1,73 @@
+#include <SPI.h>
+#include <SD.h>
+#include "DHT.h"
+
+#define DHTPIN 2      // Digital pin connected to the DH22 sensor
+#define DHTTYPE DHT22 // DH22 (AM2302), AM2321
+#define CSPIN 10      // CS pin for the SD card module
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+
+  Serial.print("Initializing SD card...");
+
+  // Initialize the SD card
+  if (!SD.begin(CSPIN)) {
+    Serial.println("SD Card initialization failed!");
+    return;
+  }
+  Serial.println("SD Card initialized.");
+
+  // Create or open the data file
+  File dataFile = SD.open("datalog.csv", FILE_WRITE);
+  if (dataFile) {
+    dataFile.println("Timestamp,Humidity (%),Temperature (C)");
+    dataFile.close();
+    Serial.println("File created and header written.");
+  } else {
+    Serial.println("Failed to open datalog.csv");
+  }
+}
+
+void loop() {
+  // Wait a few seconds between measurements
+  delay(2000);
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("Failed to read from DH22 sensor!");
+    return;
+  }
+
+  // Get the current time (using millis() as a simple timestamp)
+  unsigned long timestamp = millis();
+
+  // Log data to the SD card
+  File dataFile = SD.open("datalog.csv", FILE_WRITE);
+  if (dataFile) {
+    dataFile.print(timestamp);
+    dataFile.print(",");
+    dataFile.print(humidity);
+    dataFile.print(",");
+    dataFile.println(temperature);
+    dataFile.close();
+    Serial.println("Data logged.");
+  } else {
+    Serial.println("Failed to open datalog.csv");
+  }
+
+  // Print data to Serial Monitor
+  Serial.print("Humidity: ");
+  Serial.print(humidity);
+  Serial.print(" %\t");
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.println(" *C ");
+}
